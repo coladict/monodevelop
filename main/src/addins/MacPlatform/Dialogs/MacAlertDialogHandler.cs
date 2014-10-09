@@ -100,7 +100,9 @@ namespace MonoDevelop.MacIntegration
 					if (button == AlertButton.CloseWithoutSave)
 						label = GettextCatalog.GetString ("Don't Save");
 
-					alert.AddButton (label);
+					var nsbutton = alert.AddButton (label);
+					nsbutton.Target = new AlertButtonWrapper (nsbutton, data.Message, button, alert);
+					nsbutton.Action = new MonoMac.ObjCRuntime.Selector ("buttonActivatedAction:");
 				}
 				
 				
@@ -177,6 +179,31 @@ namespace MonoDevelop.MacIntegration
 			}
 			
 			return true;
+		}
+	}
+
+	class AlertButtonWrapper : NSObject
+	{
+		readonly NSButton nsbutton;
+		readonly MessageDescription message;
+		readonly AlertButton alertButton;
+		readonly MonoMac.ObjCRuntime.Selector oldAction;
+		readonly NSAlert alert;
+		public AlertButtonWrapper (NSButton nsbutton, MessageDescription message, AlertButton alertButton, NSAlert alert)
+		{
+			this.nsbutton = nsbutton;
+			this.message = message;
+			this.alertButton = alertButton;
+			this.alert = alert;
+			oldAction = nsbutton.Action;
+		}
+
+		[Export ("buttonActivatedAction:")]
+		void ButtonActivatedAction ()
+		{
+			message.NotifyClicked (alertButton);
+			if (message.CloseDialog)
+				nsbutton.SendAction (oldAction, alert);
 		}
 	}
 }

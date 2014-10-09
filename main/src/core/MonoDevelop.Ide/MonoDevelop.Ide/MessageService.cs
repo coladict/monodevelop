@@ -37,6 +37,29 @@ using MonoDevelop.Ide.Gui;
 
 namespace MonoDevelop.Ide
 {
+	public class AlertButtonEventArgs : EventArgs
+	{
+		public AlertButton Button {
+			get;
+			private set;
+		}
+
+		public bool CloseDialog {
+			get;
+			set;
+		}
+
+		public AlertButtonEventArgs (AlertButton button, bool closeDialog)
+		{
+			Button = button;
+			CloseDialog = closeDialog;
+		}
+
+		public AlertButtonEventArgs (AlertButton button) : this (button, true)
+		{
+		}
+	}
+
 	public class AlertButton 
 	{
 		public static AlertButton Ok      = new AlertButton (Gtk.Stock.Ok, true);
@@ -500,6 +523,7 @@ namespace MonoDevelop.Ide
 			Buttons = new List<AlertButton> ();
 			Options = new List<AlertOption> ();
 			CancellationToken = cancellationToken;
+			CloseDialog = true;
 		}
 		
 		internal IList<AlertButton> Buttons { get; private set; }
@@ -515,6 +539,17 @@ namespace MonoDevelop.Ide
 		public int DefaultButton { get; set; }
 		public CancellationToken CancellationToken { get; private set; }
 		public bool UseMarkup { get; set; }
+		public delegate void AlertButtonClickedHandler (AlertButtonEventArgs args);
+		public event EventHandler<AlertButtonEventArgs> AlertButtonClicked;
+		public bool CloseDialog { get; private set; }
+
+		internal void NotifyClicked (AlertButton button)
+		{
+			var args = new AlertButtonEventArgs (button, true);
+			if (AlertButtonClicked != null)
+				AlertButtonClicked (this, args);
+				CloseDialog = args.CloseDialog;
+		}
 		
 		public void AddOption (string id, string text, bool setByDefault)
 		{
